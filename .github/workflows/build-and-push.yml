@@ -1,0 +1,49 @@
+name: build-and-push
+
+on:
+  push:
+    branches: [ "dev" ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Nexus registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.NEXUS_REGISTRY }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Build & push api (arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.NEXUS_REGISTRY }}/${{ secrets.NEXUS_REPO_PREFIX }}/api:latest
+            ${{ secrets.NEXUS_REGISTRY }}/${{ secrets.NEXUS_REPO_PREFIX }}/api:${{ github.sha }}
+
+      - name: Build & push web (arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./web
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.NEXUS_REGISTRY }}/${{ secrets.NEXUS_REPO_PREFIX }}/web:latest
+            ${{ secrets.NEXUS_REGISTRY }}/${{ secrets.NEXUS_REPO_PREFIX }}/web:${{ github.sha }}
