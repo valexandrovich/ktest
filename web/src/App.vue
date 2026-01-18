@@ -11,7 +11,8 @@
 <script setup lang="ts">
   import { ref } from 'vue';
 
-  const envValue = import.meta.env.VITE_SOME
+  const runtimeEnv = (window as any).__ENV__ as Record<string, string> | undefined
+  const envValue = runtimeEnv?.VITE_SOME ?? import.meta.env.VITE_SOME
 
   const data = ref<any>(null);
 
