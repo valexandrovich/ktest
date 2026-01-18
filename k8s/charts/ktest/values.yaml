@@ -1,0 +1,35 @@
+imagePullSecrets:
+  - name: nexus-regcred
+
+images:
+  api:
+    repository: registry.valexa.com.ua/ktest/api
+    tag: latest
+    pullPolicy: Always
+  web:
+    repository: registry.valexa.com.ua/ktest/web
+    tag: latest
+    pullPolicy: Always
+
+service:
+  api:
+    port: 8080
+  web:
+    port: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ktest.valexa.com.ua
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  tls:
+    enabled: true
+    secretName: ktest-tls
+
+vault:
+  role: ktest
+  secrets:
+    commonPath: secret/data/ktest/common
+    webPath: secret/data/ktest/web

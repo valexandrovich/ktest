@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ktest
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/valexandrovich/ktest.git
+    targetRevision: main
+    path: k8s/charts/ktest
+    helm:
+      releaseName: ktest
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ktest
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: web
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: web
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: {{ .Values.vault.role | quote }}
+        vault.hashicorp.com/agent-inject-secret-web.env: {{ .Values.vault.secrets.webPath | quote }}
+        vault.hashicorp.com/agent-inject-template-web.env: |
+          {{`{{- with secret "`}}{{ .Values.vault.secrets.webPath }}{{`" -}}`}}
+          {{`{{- range $k, $v := .Data.data -}}`}}
+          export {{`{{$k}}`}}={{`{{ $v | toJSON }}`}}
+          {{`{{- end -}}`}}
+          {{`{{- end -}}`}}
+    spec:
+      serviceAccountName: {{ include "ktest.serviceAccountName" . }}
+      containers:
+        - name: web
+          image: "{{ .Values.images.web.repository }}:{{ .Values.images.web.tag }}"
+          imagePullPolicy: {{ .Values.images.web.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+          command: ["sh", "-c"]
+          args:
+            - >
+              set -a;
+              if [ -f /vault/secrets/web.env ]; then . /vault/secrets/web.env; fi;
+              set +a;
+              exec /entrypoint.sh
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
